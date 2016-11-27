@@ -1,14 +1,14 @@
 package com.vitez.stopwatch2;
 
+import android.app.Dialog;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
+import android.os.Bundle;
 import android.os.Handler;
 import android.support.v7.app.AppCompatActivity;
-import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
-import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
@@ -18,6 +18,9 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import java.util.ArrayList;
+import java.util.Locale;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -41,24 +44,6 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        MenuInflater inflater = getMenuInflater();
-        inflater.inflate(R.menu.option_menu, menu);
-        return true;
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        if (item.getItemId() == R.id.menu_clear_history) {
-            logTimesList.clear();
-            listAdapter.notifyDataSetChanged();
-            return true;
-        }
-
-        return false;
-    }
-
     /**
      * @param timeDiff Time difference in milliseconds.
      * @param textView TextView widget to update text with time.
@@ -70,7 +55,40 @@ public class MainActivity extends AppCompatActivity {
         msec = msec > 10 ? msec / 10 : 0;
         seconds = seconds % 60;
 
-        textView.setText(String.format("%03d:%02d.%d", minutes, seconds, msec));
+        textView.setText(String.format(Locale.ENGLISH, "%03d:%02d.%d", minutes, seconds, msec));
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.option_menu, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.menu_clear_history:
+                logTimesList.clear();
+                listAdapter.notifyDataSetChanged();
+                break;
+
+            case R.id.timer_menu_time_edit:
+                MainActivity.this.openEditAlertDialog();
+                break;
+
+            case R.id.timer_menu_clipboard:
+                ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+                ClipData clip = ClipData.newPlainText(
+                        getApplicationContext().getString(R.string.app_name),
+                        timerTextView.getText().toString()
+                );
+                clipboard.setPrimaryClip(clip);
+
+                Toast.makeText(getBaseContext(), String.format(getString(R.string.main_clipboard_copied),
+                        timerTextView.getText()), Toast.LENGTH_SHORT).show();
+        }
+
+        return true;
     }
 
     @Override
@@ -152,24 +170,8 @@ public class MainActivity extends AppCompatActivity {
                 );
                 clipboard.setPrimaryClip(clip);
 
-                Toast.makeText(getBaseContext(), String.format("Copied '%s' to clipboard",
+                Toast.makeText(getBaseContext(), String.format(getString(R.string.main_clipboard_copied),
                         logTimesList.get(position)), Toast.LENGTH_SHORT).show();
-                return true;
-            }
-        });
-
-        timerTextView.setOnLongClickListener(new View.OnLongClickListener() {
-            @Override
-            public boolean onLongClick(View v) {
-                ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
-                ClipData clip = ClipData.newPlainText(
-                        getApplicationContext().getString(R.string.app_name),
-                        timerTextView.getText().toString()
-                );
-                clipboard.setPrimaryClip(clip);
-
-                Toast.makeText(getBaseContext(), String.format("Copied '%s' to clipboard",
-                        timerTextView.getText()), Toast.LENGTH_SHORT).show();
                 return true;
             }
         });
@@ -214,7 +216,7 @@ public class MainActivity extends AppCompatActivity {
         if (clockWasTicking) {
             Button btnStart = (Button) findViewById(R.id.btnStart);
             if (btnStart != null) {
-                btnStart.callOnClick();
+                btnStart.performClick();
             }
         } else {
             refreshTextTimer(lastThickTime - startTime, timerTextView);
@@ -229,5 +231,44 @@ public class MainActivity extends AppCompatActivity {
         clockWasTicking = clockTicking;
         clockTicking = false;
         timerHandler.removeCallbacks(timerRunnable);
+    }
+
+    private void openEditAlertDialog() {
+        final Dialog dialog = new Dialog(this);
+        dialog.setContentView(R.layout.timeedit_alert);
+        dialog.setTitle(R.string.timer_dialog_title);
+
+        final TextView text = (TextView) dialog.findViewById(R.id.textTimeEdit);
+        text.setText(timerTextView.getText());
+
+        Button dialogButton = (Button) dialog.findViewById(R.id.btnEditApply);
+        dialogButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Pattern pattern = Pattern.compile("(\\d{3}):(\\d{2})\\.(\\d)");
+                Matcher match = pattern.matcher(text.getText());
+                Boolean validInput = false;
+                if (match.matches()) {
+                    Long minutes = Long.valueOf(match.group(1));
+                    Long seconds = Long.valueOf(match.group(2));
+                    Long millis = Long.valueOf(match.group(3)) * 100;
+                    if (minutes < 1000 && minutes >= 0 && seconds < 60 && seconds >= 0) {
+                        Long time = ((minutes * 60 + seconds) * 1000) + millis;
+                        lastThickTime = System.currentTimeMillis();
+                        startTime = lastThickTime - time;
+                        timerTextView.setText(text.getText());
+                        validInput = true;
+                        dialog.dismiss();
+                    }
+                }
+
+                if (!validInput) {
+                    Toast.makeText(MainActivity.this, R.string.timer_edit_invalid_input, Toast.LENGTH_SHORT)
+                            .show();
+                }
+            }
+        });
+
+        dialog.show();
     }
 }

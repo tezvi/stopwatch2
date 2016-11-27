@@ -5,4 +5,7 @@
     <string name="btn_mark">Mark</string>
     <string name="btn_reset">Reset</string>
     <string name="text_time_start">000:00.0</string>
+    <string name="timer_dialog_title">Start time</string>
+    <string name="timer_edit_invalid_input">Invalid start time format, check your input.</string>
+    <string name="main_clipboard_copied">Copied \'%s\' to clipboard</string>
 </resources>
