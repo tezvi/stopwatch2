@@ -11,9 +11,9 @@ import android.widget.TextView;
 import java.util.ArrayList;
 
 /**
- * Created by vitez on 19.11.16..
+ * Adapter for ListView with history of measured times.
  */
-class HistoryListAdapter extends ArrayAdapter {
+class HistoryListAdapter extends ArrayAdapter<String> {
     private final Context context;
     private ArrayList<String> values;
 
@@ -40,11 +40,11 @@ class HistoryListAdapter extends ArrayAdapter {
         View rowView = convertView != null ? convertView : inflater.inflate(R.layout.history_listitem, parent, false);
         rowView.setLongClickable(true);
 
-        TextView textViewTime = (TextView) rowView.findViewById(R.id.item_count);
-        TextView textViewMeasured = (TextView) rowView.findViewById(R.id.item_measured);
+        TextView textViewTime = rowView.findViewById(R.id.item_count);
+        TextView textViewMeasured = rowView.findViewById(R.id.item_measured);
 
         int indexReversed = Math.max(values.size() - 1, 0) - position;
-        textViewTime.setText("#" + String.valueOf(indexReversed + 1));
+        textViewTime.setText("#" + (indexReversed + 1));
         textViewMeasured.setText(values.get(indexReversed));
 
         return rowView;

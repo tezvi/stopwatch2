@@ -19,9 +19,13 @@ import android.widget.Toast;
 
 import java.util.ArrayList;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+/**
+ * Main activity of the app.
+ */
 public class MainActivity extends AppCompatActivity {
 
     TextView timerTextView;
@@ -49,9 +53,9 @@ public class MainActivity extends AppCompatActivity {
      * @param textView TextView widget to update text with time.
      */
     private static void refreshTextTimer(Long timeDiff, TextView textView) {
-        Integer seconds = (int) (timeDiff / 1000);
+        int seconds = (int) (timeDiff / 1000);
         Integer minutes = seconds / 60;
-        Integer msec = (int) (((timeDiff / 1000.0) - seconds) * 100);
+        int msec = (int) (((timeDiff / 1000.0) - seconds) * 100);
         msec = msec > 10 ? msec / 10 : 0;
         seconds = seconds % 60;
 
@@ -66,26 +70,22 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        switch (item.getItemId()) {
-            case R.id.menu_clear_history:
-                logTimesList.clear();
-                listAdapter.notifyDataSetChanged();
-                break;
+        int itemId = item.getItemId();
+        if (itemId == R.id.menu_clear_history) {
+            logTimesList.clear();
+            listAdapter.notifyDataSetChanged();
+        } else if (itemId == R.id.timer_menu_time_edit) {
+            MainActivity.this.openEditAlertDialog();
+        } else if (itemId == R.id.timer_menu_clipboard) {
+            ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+            ClipData clip = ClipData.newPlainText(
+                    getApplicationContext().getString(R.string.app_name),
+                    timerTextView.getText().toString()
+            );
+            clipboard.setPrimaryClip(clip);
 
-            case R.id.timer_menu_time_edit:
-                MainActivity.this.openEditAlertDialog();
-                break;
-
-            case R.id.timer_menu_clipboard:
-                ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
-                ClipData clip = ClipData.newPlainText(
-                        getApplicationContext().getString(R.string.app_name),
-                        timerTextView.getText().toString()
-                );
-                clipboard.setPrimaryClip(clip);
-
-                Toast.makeText(getBaseContext(), String.format(getString(R.string.main_clipboard_copied),
-                        timerTextView.getText()), Toast.LENGTH_SHORT).show();
+            Toast.makeText(getBaseContext(), String.format(getString(R.string.main_clipboard_copied),
+                    timerTextView.getText()), Toast.LENGTH_SHORT).show();
         }
 
         return true;
@@ -247,11 +247,11 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View v) {
                 Pattern pattern = Pattern.compile("(\\d{3}):(\\d{2})\\.(\\d)");
                 Matcher match = pattern.matcher(text.getText());
-                Boolean validInput = false;
+                boolean validInput = false;
                 if (match.matches()) {
-                    Long minutes = Long.valueOf(match.group(1));
-                    Long seconds = Long.valueOf(match.group(2));
-                    Long millis = Long.valueOf(match.group(3)) * 100;
+                    long minutes = Long.parseLong(Objects.requireNonNull(match.group(1)));
+                    long seconds = Long.parseLong(Objects.requireNonNull(match.group(2)));
+                    long millis = Long.parseLong(Objects.requireNonNull(match.group(3))) * 100;
                     if (minutes < 1000 && minutes >= 0 && seconds < 60 && seconds >= 0) {
                         Long time = ((minutes * 60 + seconds) * 1000) + millis;
                         lastThickTime = System.currentTimeMillis();
